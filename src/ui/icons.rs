@@ -16,6 +16,10 @@ pub enum ConsoleIcon {
     Morale,
     Health,
     Pause,
+    Cancel,
+    ZoomIn,
+    ZoomOut,
+    Reset,
 }
 
 /// Pick the glyph that represents a building's headline output, falling back to
@@ -187,6 +191,58 @@ pub fn draw_icon(icon: ConsoleIcon, x: f32, y: f32, size: f32, color: Color) {
                 y + size * 0.18,
                 size * 0.16,
                 size * 0.64,
+                color,
+            );
+        }
+        ConsoleIcon::Cancel => {
+            draw_line(
+                cx - size * 0.25,
+                cy - size * 0.25,
+                cx + size * 0.25,
+                cy + size * 0.25,
+                2.4,
+                color,
+            );
+            draw_line(
+                cx + size * 0.25,
+                cy - size * 0.25,
+                cx - size * 0.25,
+                cy + size * 0.25,
+                2.4,
+                color,
+            );
+        }
+        ConsoleIcon::ZoomIn => {
+            draw_circle_lines(cx, cy, size * 0.27, 2.0, color);
+            draw_line(cx, cy - size * 0.13, cx, cy + size * 0.13, 2.0, color);
+            draw_line(cx - size * 0.13, cy, cx + size * 0.13, cy, 2.0, color);
+            draw_line(
+                cx + size * 0.18,
+                cy + size * 0.18,
+                cx + size * 0.38,
+                cy + size * 0.38,
+                2.0,
+                color,
+            );
+        }
+        ConsoleIcon::ZoomOut => {
+            draw_circle_lines(cx, cy, size * 0.27, 2.0, color);
+            draw_line(cx - size * 0.13, cy, cx + size * 0.13, cy, 2.0, color);
+            draw_line(
+                cx + size * 0.18,
+                cy + size * 0.18,
+                cx + size * 0.38,
+                cy + size * 0.38,
+                2.0,
+                color,
+            );
+        }
+        ConsoleIcon::Reset => {
+            draw_circle_lines(cx, cy, size * 0.3, 2.0, color);
+            draw_triangle(
+                vec2(cx - size * 0.1, y + size * 0.13),
+                vec2(cx - size * 0.28, y + size * 0.2),
+                vec2(cx - size * 0.12, y + size * 0.32),
                 color,
             );
         }

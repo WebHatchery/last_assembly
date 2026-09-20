@@ -24,11 +24,25 @@ param(
     [int]$Frames = 150,
     [string]$OutputDir = "docs\verification",
     [int]$MinBytes = 15000,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [int]$WindowWidth = 0,
+    [int]$WindowHeight = 0,
+    [switch]$Visible
 )
 
 $ErrorActionPreference = "Stop"
 $gameDir = Split-Path -Parent $PSScriptRoot
 $shared = Join-Path (Split-Path -Parent $gameDir) "macroquad-toolkit\scripts\capture_ui.ps1"
 
-& $shared -GameDir $gameDir -Scenes $Scenes -Frames $Frames -OutputDir $OutputDir -MinBytes $MinBytes -SkipBuild:$SkipBuild
+$sharedParams = @{
+    GameDir = $gameDir
+    Scenes = $Scenes
+    Frames = $Frames
+    OutputDir = $OutputDir
+    MinBytes = $MinBytes
+    SkipBuild = $SkipBuild
+    Visible = $Visible
+}
+if ($WindowWidth -gt 0) { $sharedParams.WindowWidth = $WindowWidth }
+if ($WindowHeight -gt 0) { $sharedParams.WindowHeight = $WindowHeight }
+& $shared @sharedParams

@@ -8,7 +8,7 @@ use crate::state::gameplay::GameplayState;
 use crate::ui::{self, ConsoleButtonState};
 use macroquad::prelude::*;
 use macroquad_toolkit::colors::dark;
-use macroquad_toolkit::ui::{button, draw_text_centered, draw_ui_text, TextStyle};
+use macroquad_toolkit::ui::{button, draw_text_centered, draw_ui_text, wrap_text, TextStyle};
 
 /// Draw `text` centred on `center_x`, using the default UI font.
 fn centered(text: &str, center_x: f32, baseline_y: f32, font_size: f32, color: Color) {
@@ -19,10 +19,15 @@ impl GameplayState {
     pub fn draw_workforce_overlay(&mut self) {
         let sw = screen_width();
         let sh = screen_height();
+        let compact = sh < 520.0 || sw < 520.0;
         draw_rectangle(0.0, 0.0, sw, sh, Color::new(0.0, 0.0, 0.0, 0.72));
 
         let panel_w = 700.0_f32.min(sw - 32.0);
-        let panel_h = 470.0_f32.min(sh - 32.0);
+        let panel_h = if sh < 520.0 {
+            (sh - 24.0).max(220.0)
+        } else {
+            470.0_f32.min(sh - 32.0)
+        };
         let panel_x = (sw - panel_w) * 0.5;
         let panel_y = (sh - panel_h) * 0.5;
         let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.04, 0.06, 0.07, 0.99))
@@ -34,7 +39,13 @@ impl GameplayState {
 
         let t = &text().workforce;
         let cx = panel_x + panel_w * 0.5;
-        centered(&t.title, cx, panel_y + 42.0, 25.0, dark::POSITIVE);
+        centered(
+            &t.title,
+            cx,
+            panel_y + if compact { 32.0 } else { 42.0 },
+            if compact { 20.0 } else { 25.0 },
+            dark::POSITIVE,
+        );
         centered(
             &fill(
                 &t.subtitle,
@@ -44,8 +55,8 @@ impl GameplayState {
                 ],
             ),
             cx,
-            panel_y + 68.0,
-            13.0,
+            panel_y + if compact { 53.0 } else { 68.0 },
+            if compact { 10.0 } else { 13.0 },
             dark::TEXT_DIM,
         );
 
@@ -74,24 +85,36 @@ impl GameplayState {
         let mut chosen = None;
         let row_x = panel_x + 28.0;
         let row_w = panel_w - 56.0;
-        let mut row_y = panel_y + 88.0;
+        let row_h = if compact { 50.0 } else { 68.0 };
+        let row_gap = if compact { 6.0 } else { 7.0 };
+        let mut row_y = panel_y + if compact { 68.0 } else { 88.0 };
         for (policy, name, detail) in options {
             let selected = self.population.workforce_policy == policy;
             ui::draw_console_panel(
-                Rect::new(row_x, row_y, row_w, 68.0),
+                Rect::new(row_x, row_y, row_w, row_h),
                 if selected {
                     Color::new(0.20, 0.62, 0.58, 0.78)
                 } else {
                     Color::new(0.16, 0.30, 0.31, 0.72)
                 },
             );
-            draw_ui_text(name, row_x + 14.0, row_y + 24.0, 16.0, dark::TEXT_BRIGHT);
+            draw_ui_text(
+                name,
+                row_x + 14.0,
+                row_y + if compact { 19.0 } else { 24.0 },
+                if compact { 13.0 } else { 16.0 },
+                dark::TEXT_BRIGHT,
+            );
             ui::draw_bounded_text(
                 detail,
                 row_x + 14.0,
-                row_y + 47.0,
-                row_w - 214.0,
-                12.0,
+                row_y + if compact { 36.0 } else { 47.0 },
+                if compact {
+                    row_w - 150.0
+                } else {
+                    row_w - 214.0
+                },
+                if compact { 9.0 } else { 12.0 },
                 dark::TEXT_DIM,
             );
             let label = if selected {
@@ -100,10 +123,10 @@ impl GameplayState {
                 name.to_string()
             };
             if ui::draw_console_button(
-                row_x + row_w - 184.0,
-                row_y + 15.0,
-                166.0,
-                38.0,
+                row_x + row_w - if compact { 126.0 } else { 184.0 },
+                row_y + if compact { 9.0 } else { 15.0 },
+                if compact { 108.0 } else { 166.0 },
+                if compact { 32.0 } else { 38.0 },
                 &label,
                 if selected {
                     ConsoleButtonState::Disabled
@@ -114,7 +137,7 @@ impl GameplayState {
             {
                 chosen = Some(policy);
             }
-            row_y += 75.0;
+            row_y += row_h + row_gap;
         }
 
         if let Some(policy) = chosen {
@@ -124,7 +147,13 @@ impl GameplayState {
             return;
         }
 
-        if button(cx - 130.0, panel_y + panel_h - 50.0, 260.0, 34.0, &t.close) {
+        if button(
+            cx - 130.0,
+            panel_y + panel_h - if compact { 38.0 } else { 50.0 },
+            260.0,
+            if compact { 30.0 } else { 34.0 },
+            &t.close,
+        ) {
             self.show_workforce = false;
         }
     }
@@ -136,10 +165,15 @@ impl GameplayState {
         }
         let sw = screen_width();
         let sh = screen_height();
+        let compact = sh < 520.0 || sw < 520.0;
         draw_rectangle(0.0, 0.0, sw, sh, Color::new(0.0, 0.0, 0.0, 0.82));
 
         let pw = 660.0_f32.min(sw - 40.0);
-        let ph = 430.0_f32.min(sh - 40.0);
+        let ph = if sh < 520.0 {
+            (sh - 24.0).max(220.0)
+        } else {
+            430.0_f32.min(sh - 40.0)
+        };
         let px = (sw - pw) * 0.5;
         let py = (sh - ph) * 0.5;
         let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.04, 0.06, 0.07, 0.98))
@@ -148,28 +182,43 @@ impl GameplayState {
 
         let t = &text().intro;
         let cx = px + pw * 0.5;
-        centered(&t.title, cx, py + 46.0, 28.0, dark::NEGATIVE);
-        centered(&t.subtitle, cx, py + 74.0, 14.0, dark::TEXT_DIM);
+        centered(
+            &t.title,
+            cx,
+            py + if compact { 30.0 } else { 46.0 },
+            if compact { 20.0 } else { 28.0 },
+            dark::NEGATIVE,
+        );
+        centered(
+            &t.subtitle,
+            cx,
+            py + if compact { 51.0 } else { 74.0 },
+            if compact { 10.0 } else { 14.0 },
+            dark::TEXT_DIM,
+        );
 
         let sections = [
             (t.mission_label.as_str(), &t.mission, dark::ACCENT),
             (t.trade_label.as_str(), &t.trade, dark::WARNING),
             (t.endgame_label.as_str(), &t.endgame, dark::POSITIVE),
         ];
-        let mut y = py + 108.0;
+        let mut y = py + if compact { 72.0 } else { 108.0 };
         for (label, lines, color) in sections {
-            draw_ui_text(label, px + 42.0, y, 11.0, color);
-            y += 22.0;
+            draw_ui_text(label, px + 24.0, y, if compact { 9.0 } else { 11.0 }, color);
+            y += if compact { 16.0 } else { 22.0 };
             for line in lines {
-                draw_ui_text(line, px + 42.0, y, 14.0, dark::TEXT);
-                y += 20.0;
+                let font_size = if compact { 11.0 } else { 14.0 };
+                for wrapped in wrap_text(line, pw - 48.0, font_size) {
+                    ui::draw_bounded_text(&wrapped, px + 24.0, y, pw - 48.0, font_size, dark::TEXT);
+                    y += if compact { 15.0 } else { 20.0 };
+                }
             }
-            y += 10.0;
+            y += if compact { 5.0 } else { 10.0 };
         }
 
-        let bw = 220.0;
-        let bh = 42.0;
-        if button(cx - bw * 0.5, py + ph - bh - 22.0, bw, bh, &t.button) {
+        let bw = 220.0_f32.min(pw - 40.0);
+        let bh = if compact { 36.0 } else { 42.0 };
+        if button(cx - bw * 0.5, py + ph - bh - 14.0, bw, bh, &t.button) {
             self.show_intro = false;
         }
     }
@@ -178,10 +227,15 @@ impl GameplayState {
     /// settings overlay.
     pub fn draw_pause_menu(&mut self) {
         if self.show_settings {
+            let tutorial_seen_before = self.settings.tutorial_seen;
             if ui::draw_settings_overlay(&mut self.settings) == ui::SettingsAction::Close {
                 self.show_settings = false;
                 // Apply the autosave preference live.
                 self.autosave_enabled = self.settings.autosave;
+                if tutorial_seen_before && !self.settings.tutorial_seen {
+                    self.coach.active = true;
+                    self.coach.step = 0;
+                }
             }
             return;
         }
@@ -255,6 +309,7 @@ impl GameplayState {
         let mut settings = crate::save::Settings::load();
         if !settings.tutorial_seen {
             settings.tutorial_seen = true;
+            self.settings.tutorial_seen = true;
             let _ = settings.save();
         }
     }
@@ -323,11 +378,16 @@ impl GameplayState {
 
         let sw = screen_width();
         let sh = screen_height();
+        let compact = sh < 520.0 || sw < 520.0;
         // Dim backdrop.
         draw_rectangle(0.0, 0.0, sw, sh, Color::new(0.0, 0.0, 0.0, 0.62));
 
         let panel_w = 540.0_f32.min(sw - 40.0);
-        let panel_h = 400.0_f32.min(sh - 40.0);
+        let panel_h = if sh < 520.0 {
+            (sh - 24.0).max(240.0)
+        } else {
+            400.0_f32.min(sh - 40.0)
+        };
         let panel_x = (sw - panel_w) * 0.5;
         let panel_y = (sh - panel_h) * 0.5;
 
@@ -341,8 +401,20 @@ impl GameplayState {
         let t = &text().report;
         let cx = panel_x + panel_w * 0.5;
         let title = fill(&t.title, &[("cycle", &report.cycle.to_string())]);
-        centered(&title, cx, panel_y + 40.0, 24.0, dark::POSITIVE);
-        centered(&t.subtitle, cx, panel_y + 64.0, 13.0, dark::TEXT_DIM);
+        centered(
+            &title,
+            cx,
+            panel_y + if compact { 29.0 } else { 40.0 },
+            if compact { 18.0 } else { 24.0 },
+            dark::POSITIVE,
+        );
+        centered(
+            &t.subtitle,
+            cx,
+            panel_y + if compact { 48.0 } else { 64.0 },
+            if compact { 10.0 } else { 13.0 },
+            dark::TEXT_DIM,
+        );
 
         // Headline: the sacrifice ledger. This is the campaign's real score —
         // how many people the beacon's scream let escape elsewhere this cycle.
@@ -352,8 +424,8 @@ impl GameplayState {
                 &[("n", &report.survivors_evacuated_cycle.to_string())],
             ),
             cx,
-            panel_y + 100.0,
-            22.0,
+            panel_y + if compact { 76.0 } else { 100.0 },
+            if compact { 16.0 } else { 22.0 },
             dark::POSITIVE,
         );
         centered(
@@ -362,8 +434,8 @@ impl GameplayState {
                 &[("total", &report.survivors_evacuated_total.to_string())],
             ),
             cx,
-            panel_y + 122.0,
-            13.0,
+            panel_y + if compact { 94.0 } else { 122.0 },
+            if compact { 10.0 } else { 13.0 },
             dark::TEXT_DIM,
         );
 
@@ -382,21 +454,29 @@ impl GameplayState {
             fill(&t.food, &[("n", &format!("{:.0}", report.food))]),
             fill(&t.population, &[("n", &report.population.to_string())]),
         ];
-        let mut y = panel_y + 154.0;
+        let mut y = panel_y + if compact { 118.0 } else { 154.0 };
         for line in &lines {
-            draw_ui_text(line, panel_x + 40.0, y, 16.0, dark::TEXT);
-            y += 26.0;
+            ui::draw_bounded_text(
+                line,
+                panel_x + if compact { 24.0 } else { 40.0 },
+                y,
+                panel_w - if compact { 48.0 } else { 80.0 },
+                if compact { 12.0 } else { 16.0 },
+                dark::TEXT,
+            );
+            y += if compact { 17.0 } else { 26.0 };
         }
 
         // The machines are wiser: warn that the next cycle starts harder.
-        draw_ui_text(
+        ui::draw_bounded_text(
             &fill(
                 &t.escalation,
                 &[("pct", &format!("{:.0}", report.escalation_pct))],
             ),
-            panel_x + 40.0,
-            y + 4.0,
-            13.0,
+            panel_x + if compact { 24.0 } else { 40.0 },
+            y + if compact { 2.0 } else { 4.0 },
+            panel_w - if compact { 48.0 } else { 80.0 },
+            if compact { 10.0 } else { 13.0 },
             dark::WARNING,
         );
 
@@ -404,8 +484,8 @@ impl GameplayState {
         // player's own decision from the pause menu — the cycle boundary should
         // never offer to stop as though it were the natural thing to do.
         let btn_w = 240.0_f32.min(panel_w - 40.0);
-        let btn_h = 40.0;
-        let btn_y = panel_y + panel_h - btn_h - 24.0;
+        let btn_h = if compact { 34.0 } else { 40.0 };
+        let btn_y = panel_y + panel_h - btn_h - if compact { 14.0 } else { 24.0 };
         if button(cx - btn_w * 0.5, btn_y, btn_w, btn_h, &t.button) {
             self.dismiss_salvage_report();
         }

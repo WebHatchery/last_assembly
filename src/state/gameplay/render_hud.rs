@@ -16,9 +16,9 @@ use macroquad_toolkit::notifications::{
 use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
 use super::helpers::{beacon_color, threat_color};
-use super::ui::EdgeSide;
+use super::ui::{EdgeSide, EDGE_RAIL_MARGIN, EDGE_RAIL_W};
 use super::ui_advice::{AdviceTarget, AlertSeverity, PowerGridSnapshot, UiAdvice};
-use super::GameplayState;
+use super::{GameplayState, HudDetail};
 
 impl GameplayState {
     pub(super) fn draw_hud(&mut self, data: &GameData) {
@@ -34,45 +34,49 @@ impl GameplayState {
             Color::new(0.16, 0.42, 0.42, 0.82),
         );
 
-        let gap = 8.0;
-        let margin = 10.0;
-        let status_w = (sw * 0.14).clamp(142.0, 178.0);
-        let threat_w = (sw * 0.16).clamp(148.0, 194.0);
-        let beacon_w = (sw * 0.17).clamp(158.0, 216.0);
-        let wide = sw >= 1180.0;
-        let next_w = if wide {
-            (sw * 0.2).clamp(190.0, 260.0)
-        } else {
-            0.0
-        };
-        let fixed_w = status_w + threat_w + beacon_w + next_w + gap * if wide { 4.0 } else { 3.0 };
-        let metrics_w = (sw - margin * 2.0 - fixed_w).max(260.0);
-
+        let gap = 12.0;
+        let margin = 14.0;
+        let status_w = (sw * 0.15).clamp(140.0, 184.0);
+        let threat_w = (sw * 0.18).clamp(156.0, 214.0);
+        let header_right = sw - EDGE_RAIL_MARGIN - EDGE_RAIL_W - 10.0;
+        let metrics_w = (header_right - margin - status_w - threat_w - gap * 2.0).max(220.0);
         let status_rect = Rect::new(margin, 9.0, status_w, hud_h - 18.0);
-        let metrics_rect = Rect::new(status_rect.x + status_w + gap, 9.0, metrics_w, hud_h - 18.0);
-        let threat_rect = Rect::new(
-            metrics_rect.x + metrics_w + gap,
-            9.0,
-            threat_w,
-            hud_h - 18.0,
+        let metrics_rect = Rect::new(status_rect.right() + gap, 9.0, metrics_w, hud_h - 18.0);
+        let threat_rect = Rect::new(metrics_rect.right() + gap, 9.0, threat_w, hud_h - 18.0);
+
+        draw_line(
+            status_rect.right() + gap * 0.5,
+            12.0,
+            status_rect.right() + gap * 0.5,
+            hud_h - 12.0,
+            1.0,
+            Color::new(0.24, 0.42, 0.44, 0.5),
         );
-        let mut next_x = threat_rect.x + threat_w + gap;
+        draw_line(
+            metrics_rect.right() + gap * 0.5,
+            12.0,
+            metrics_rect.right() + gap * 0.5,
+            hud_h - 12.0,
+            1.0,
+            Color::new(0.24, 0.42, 0.44, 0.5),
+        );
 
         self.draw_compact_status(status_rect);
         self.draw_compact_metrics(metrics_rect, &advice.power);
         self.draw_compact_threat(threat_rect, &advice);
 
-        if wide {
-            let next_rect = Rect::new(next_x, 9.0, next_w, hud_h - 18.0);
-            self.draw_compact_next(next_rect, &advice, data);
-            next_x += next_w + gap;
+        if !self.has_selection()
+            && !self.coach.active
+            && self.salvage_report.is_none()
+            && self.pending_depth_directive.is_none()
+        {
+            self.draw_compact_next(data, &advice);
         }
-        self.draw_compact_beacon(Rect::new(next_x, 9.0, beacon_w, hud_h - 18.0));
+        self.draw_hud_detail(&advice);
     }
 
-    fn draw_compact_status(&self, rect: Rect) {
+    fn draw_compact_status(&mut self, rect: Rect) {
         let t = &text().hud;
-        ui::draw_console_panel(rect, Color::new(0.16, 0.42, 0.38, 0.66));
         draw_ui_text(
             &t.survival,
             rect.x + 10.0,
@@ -80,32 +84,51 @@ impl GameplayState {
             11.0,
             dark::POSITIVE,
         );
-        draw_ui_text(
+        ui::draw_bounded_text(
             &self.depth_readout(),
             rect.x + 10.0,
             rect.y + 34.0,
+            rect.w - 68.0,
             10.0,
             dark::TEXT_DIM,
         );
-        draw_ui_text(
+        ui::draw_bounded_text(
             &self.beacon_phase.label().to_uppercase(),
             rect.x + 10.0,
             rect.y + 52.0,
+            rect.w - 68.0,
             11.0,
             beacon_color(&self.beacon_phase),
         );
-        ui::draw_icon(
-            ConsoleIcon::Health,
-            rect.x + rect.w - 27.0,
-            rect.y + 34.0,
-            14.0,
-            Color::new(0.35, 0.95, 0.72, 0.78),
-        );
+        let phase_rect = Rect::new(rect.x, rect.y + 35.0, rect.w - 58.0, 24.0);
+        if phase_rect.contains(vec2(mouse_position().0, mouse_position().1))
+            && is_mouse_button_released(MouseButton::Left)
+        {
+            self.hud_detail = Some(HudDetail::Beacon);
+        }
+        let speed_label = if self.time_scale > 1.0 {
+            &t.speed_fast
+        } else {
+            &t.speed_normal
+        };
+        if ui::draw_console_button(
+            rect.x + rect.w - 54.0,
+            rect.y + 9.0,
+            48.0,
+            44.0,
+            speed_label,
+            ConsoleButtonState::Affordable,
+        ) {
+            self.time_scale = if self.time_scale > 1.0 {
+                1.0
+            } else {
+                self.constants.gameplay.speed_multiplier
+            };
+        }
     }
 
-    fn draw_compact_metrics(&self, rect: Rect, power: &PowerGridSnapshot) {
+    fn draw_compact_metrics(&mut self, rect: Rect, power: &PowerGridSnapshot) {
         let t = &text().hud;
-        ui::draw_console_panel(rect, Color::new(0.12, 0.24, 0.25, 0.58));
         let entries = [
             (
                 ConsoleIcon::People,
@@ -151,33 +174,70 @@ impl GameplayState {
                 },
             ),
         ];
-        let col_w = rect.w / entries.len() as f32;
+        let compact = rect.w < 420.0;
+        let columns = if compact { 3 } else { entries.len() };
+        let rows = if compact { 2 } else { 1 };
+        let col_w = rect.w / columns as f32;
+        let row_h = rect.h / rows as f32;
         for (idx, (icon, label, value, color)) in entries.iter().enumerate() {
-            let x = rect.x + idx as f32 * col_w;
+            let column = if compact { idx % columns } else { idx };
+            let row = if compact { idx / columns } else { 0 };
+            let x = rect.x + column as f32 * col_w;
+            let y = rect.y + row as f32 * row_h;
             ui::draw_icon(
                 *icon,
-                x + 7.0,
-                rect.y + 9.0,
-                18.0,
+                x + 4.0,
+                y + if compact { 5.0 } else { 9.0 },
+                if compact { 14.0 } else { 18.0 },
                 Color::new(color.r, color.g, color.b, 0.78),
             );
-            draw_ui_text(label, x + 29.0, rect.y + 20.0, 8.0, dark::TEXT_DIM);
-            draw_ui_text(value, x + 29.0, rect.y + 42.0, 14.0, *color);
+            let text_x = x + if compact { 22.0 } else { 29.0 };
+            draw_ui_text(
+                label,
+                text_x,
+                y + if compact { 15.0 } else { 20.0 },
+                8.0,
+                dark::TEXT_DIM,
+            );
+            draw_ui_text(
+                value,
+                text_x,
+                y + if compact { 32.0 } else { 42.0 },
+                if compact { 12.0 } else { 14.0 },
+                *color,
+            );
         }
-        draw_button_hint(
-            Rect::new(rect.x + col_w * 2.0, rect.y, col_w, rect.h),
-            &t.power_grid,
-            &format!(
-                "{} {:.0} · {} {:.0} · {} {:+.0}/s",
-                t.gen, power.generated, t.used, power.used, t.net, power.net
-            ),
+        let power_cell = Rect::new(
+            rect.x + col_w * if compact { 2.0 } else { 2.0 },
+            rect.y,
+            col_w,
+            if compact { row_h } else { rect.h },
         );
+        if power_cell.contains(vec2(mouse_position().0, mouse_position().1))
+            && is_mouse_button_released(MouseButton::Left)
+        {
+            self.hud_detail = Some(HudDetail::Power);
+        }
     }
 
-    fn draw_compact_threat(&self, rect: Rect, advice: &UiAdvice) {
+    fn draw_compact_threat(&mut self, rect: Rect, advice: &UiAdvice) {
         let t = &text().hud;
         let color = threat_color(&self.threat, &self.constants.threat);
-        ui::draw_console_panel(rect, Color::new(color.r, color.g, color.b, 0.52));
+        draw_rectangle(
+            rect.x,
+            rect.y,
+            rect.w,
+            rect.h,
+            Color::new(color.r, color.g, color.b, 0.12),
+        );
+        draw_rectangle_lines(
+            rect.x,
+            rect.y,
+            rect.w,
+            rect.h,
+            1.5,
+            Color::new(color.r, color.g, color.b, 0.55),
+        );
         draw_ui_text(&t.threat, rect.x + 10.0, rect.y + 17.0, 11.0, color);
         draw_ui_text(
             &format!(
@@ -223,43 +283,73 @@ impl GameplayState {
             } else {
                 dark::WARNING
             };
-            draw_rectangle(rect.x + rect.w - 13.0, rect.y + 8.0, 5.0, 5.0, alert_color);
-            draw_button_hint(rect, &alert.label, &alert.detail);
+            draw_rectangle(rect.x + rect.w - 15.0, rect.y + 7.0, 8.0, 8.0, alert_color);
         } else {
             let composition = super::ui_advice::format_enemy_counts(&advice.wave_preview.counts);
-            draw_button_hint(rect, &t.threat, &composition);
+            ui::draw_bounded_text(
+                &composition,
+                rect.x + 10.0,
+                rect.y + 64.0,
+                rect.w - 20.0,
+                9.0,
+                dark::TEXT_DIM,
+            );
+        }
+        if rect.contains(vec2(mouse_position().0, mouse_position().1))
+            && is_mouse_button_released(MouseButton::Left)
+        {
+            self.hud_detail = Some(HudDetail::Threat);
         }
     }
 
-    fn draw_compact_next(&mut self, rect: Rect, advice: &UiAdvice, data: &GameData) {
+    fn draw_compact_next(&mut self, data: &GameData, advice: &UiAdvice) {
         let t = &text().hud;
-        ui::draw_console_panel(rect, Color::new(0.16, 0.36, 0.54, 0.58));
+        if matches!(advice.suggested_action.target, AdviceTarget::None) {
+            return;
+        }
+        let side_clearance = EDGE_RAIL_MARGIN + EDGE_RAIL_W + 8.0;
+        let rect_w = 420.0_f32.min(screen_width() - side_clearance * 2.0);
+        let rect = Rect::new(
+            ((screen_width() - rect_w) * 0.5).max(side_clearance),
+            self.constants.ui.hud_height + 12.0,
+            rect_w,
+            90.0,
+        );
+        draw_rectangle(
+            rect.x,
+            rect.y,
+            rect.w,
+            rect.h,
+            Color::new(0.035, 0.07, 0.10, 0.96),
+        );
+        draw_rectangle_lines(
+            rect.x,
+            rect.y,
+            rect.w,
+            rect.h,
+            1.5,
+            Color::new(0.20, 0.55, 0.75, 0.8),
+        );
         draw_ui_text(
             &t.next_step,
             rect.x + 10.0,
             rect.y + 16.0,
-            9.0,
+            10.0,
             dark::ACCENT,
         );
         ui::draw_bounded_text(
             &advice.suggested_action.label,
             rect.x + 10.0,
             rect.y + 34.0,
-            rect.w - 78.0,
-            14.0,
+            rect.w - 86.0,
+            13.0,
             dark::TEXT_BRIGHT,
         );
         ui::draw_bounded_text(
-            &fill(
-                &t.cost_risk,
-                &[
-                    ("cost", &advice.suggested_action.cost),
-                    ("risk", &advice.risk),
-                ],
-            ),
+            &advice.suggested_action.cost,
             rect.x + 10.0,
             rect.y + 50.0,
-            rect.w - 78.0,
+            rect.w - 86.0,
             9.0,
             dark::TEXT_DIM,
         );
@@ -276,10 +366,10 @@ impl GameplayState {
         };
         if interactive
             && ui::draw_console_button(
-                rect.x + rect.w - 64.0,
-                rect.y + 16.0,
-                54.0,
-                30.0,
+                rect.x + rect.w - 74.0,
+                rect.y + 7.0,
+                64.0,
+                44.0,
                 &t.focus,
                 state,
             )
@@ -287,45 +377,129 @@ impl GameplayState {
             let target = advice.suggested_action.target.clone();
             self.apply_advice_focus(&target, data);
         }
-        draw_button_hint(
-            Rect::new(rect.x, rect.y, rect.w - 72.0, rect.h),
-            &advice.suggested_action.label,
+        ui::draw_bounded_text(
             &advice.suggested_action.detail,
+            rect.x + 10.0,
+            rect.y + 81.0,
+            rect.w - 86.0,
+            8.0,
+            dark::TEXT_DIM,
+        );
+        ui::draw_bounded_text(
+            &advice.risk,
+            rect.x + 10.0,
+            rect.y + 65.0,
+            rect.w - 86.0,
+            9.0,
+            dark::WARNING,
         );
     }
 
-    fn draw_compact_beacon(&self, rect: Rect) {
-        let t = &text().hud;
-        let color = beacon_color(&self.beacon_phase);
-        ui::draw_console_panel(rect, Color::new(color.r, color.g, color.b, 0.5));
-        draw_ui_text(&t.edge_beacon, rect.x + 10.0, rect.y + 17.0, 10.0, color);
-        ui::draw_bounded_text(
-            &self.beacon_phase.label().to_uppercase(),
-            rect.x + 10.0,
-            rect.y + 36.0,
-            rect.w - 20.0,
-            13.0,
-            dark::TEXT_BRIGHT,
-        );
-        let evac = if self.beacon_active {
-            fill(
-                &t.evac_pending,
-                &[
-                    ("n", &self.survivors_evacuated.to_string()),
-                    ("pending", &format!("{:.0}", self.pending_evacuees)),
-                ],
-            )
-        } else {
-            fill(&t.evac, &[("n", &self.survivors_evacuated.to_string())])
+    fn draw_hud_detail(&mut self, advice: &UiAdvice) {
+        let Some(detail) = self.hud_detail else {
+            return;
         };
-        ui::draw_bounded_text(
-            &evac,
-            rect.x + 10.0,
-            rect.y + 52.0,
-            rect.w - 20.0,
-            9.0,
-            dark::POSITIVE,
+        let t = &text().hud;
+        let panel_w = 320.0_f32.min(screen_width() - 32.0);
+        let panel_h = 150.0_f32.min(screen_height() - self.constants.ui.hud_height - 24.0);
+        let panel_x = (screen_width() - panel_w) * 0.5;
+        let panel_y = self.constants.ui.hud_height + 12.0;
+        draw_rectangle(
+            panel_x,
+            panel_y,
+            panel_w,
+            panel_h,
+            Color::new(0.025, 0.045, 0.055, 0.98),
         );
+        draw_rectangle_lines(
+            panel_x,
+            panel_y,
+            panel_w,
+            panel_h,
+            1.6,
+            Color::new(0.24, 0.62, 0.68, 0.95),
+        );
+
+        let (title, lines, accent) = match detail {
+            HudDetail::Power => (
+                t.power_grid.clone(),
+                vec![
+                    format!("{} {:.0}", t.gen, advice.power.generated),
+                    format!("{} {:.0}", t.used, advice.power.used),
+                    format!("{} {:+.0}/s", t.net, advice.power.net),
+                    format!("{} {:.0}", t.battery, advice.power.battery),
+                ],
+                dark::POSITIVE,
+            ),
+            HudDetail::Threat => {
+                let mut lines = Vec::new();
+                if let Some(alert) = advice.alerts.first() {
+                    lines.push(alert.label.clone());
+                    lines.push(alert.detail.clone());
+                } else {
+                    lines.push(format!(
+                        "{:.0}% · {}",
+                        self.threat.awareness_level(),
+                        self.threat.reaction_tier(&self.constants.threat).label()
+                    ));
+                    lines.push(super::ui_advice::format_enemy_counts(
+                        &advice.wave_preview.counts,
+                    ));
+                }
+                (
+                    t.threat.clone(),
+                    lines,
+                    threat_color(&self.threat, &self.constants.threat),
+                )
+            }
+            HudDetail::Beacon => (
+                t.beacon_control.clone(),
+                vec![
+                    self.beacon_phase.label().to_uppercase(),
+                    if self.beacon_active {
+                        fill(
+                            &t.evac_pending,
+                            &[
+                                ("n", &self.survivors_evacuated.to_string()),
+                                ("pending", &format!("{:.0}", self.pending_evacuees)),
+                            ],
+                        )
+                    } else {
+                        fill(&t.evac, &[("n", &self.survivors_evacuated.to_string())])
+                    },
+                    fill(
+                        &t.next_phase,
+                        &[("draw", &format!("{:.0}", self.beacon_draw_to_next_phase()))],
+                    ),
+                ],
+                beacon_color(&self.beacon_phase),
+            ),
+        };
+        draw_ui_text(&title, panel_x + 16.0, panel_y + 24.0, 14.0, accent);
+        for (index, line) in lines.iter().enumerate() {
+            ui::draw_bounded_text(
+                line,
+                panel_x + 16.0,
+                panel_y + 48.0 + index as f32 * 20.0,
+                panel_w - 32.0,
+                12.0,
+                if index == 0 {
+                    dark::TEXT_BRIGHT
+                } else {
+                    dark::TEXT_DIM
+                },
+            );
+        }
+        if ui::draw_console_button(
+            panel_x + panel_w - 82.0,
+            panel_y + panel_h - 50.0,
+            66.0,
+            40.0,
+            &text().panels.close,
+            ConsoleButtonState::Affordable,
+        ) {
+            self.hud_detail = None;
+        }
     }
 
     pub(super) fn draw_edge_controls(&mut self) {
@@ -358,6 +532,17 @@ impl GameplayState {
             self.close_dock_panels();
             self.show_workforce = true;
         }
+        if self.placing_tower.is_some()
+            && ui::draw_edge_button(
+                self.edge_button_rect(EdgeSide::Left, 3),
+                ConsoleIcon::Cancel,
+                &t.cancel,
+                false,
+                dark::WARNING,
+            )
+        {
+            self.placing_tower = None;
+        }
         if ui::draw_edge_button(
             self.edge_button_rect(EdgeSide::Right, 0),
             ConsoleIcon::Risk,
@@ -377,20 +562,45 @@ impl GameplayState {
             self.close_dock_panels();
             self.paused = true;
         }
-    }
-
-    pub(super) fn draw_wave_status(&self) {
-        if self.time_scale <= 1.0 {
-            return;
+        if ui::draw_edge_button(
+            self.camera_control_rect(0),
+            ConsoleIcon::ZoomIn,
+            &t.zoom_in,
+            false,
+            dark::ACCENT,
+        ) {
+            self.camera
+                .zoom_at(1.2, vec2(screen_width() * 0.5, screen_height() * 0.5));
         }
-        let tag = &text().hud.speed_tag;
-        let tag_w = 34.0;
-        let tag_h = 20.0;
-        let x = screen_width() - super::ui::EDGE_RAIL_MARGIN - super::ui::EDGE_RAIL_W - tag_w - 8.0;
-        let y = self.constants.ui.hud_height + 8.0;
-        draw_rectangle(x, y, tag_w, tag_h, Color::new(0.12, 0.09, 0.03, 0.86));
-        draw_rectangle_lines(x, y, tag_w, tag_h, 1.0, dark::WARNING);
-        draw_centered_text(tag, x + tag_w * 0.5, y + 14.0, 12.0, dark::WARNING);
+        if ui::draw_edge_button(
+            self.camera_control_rect(1),
+            ConsoleIcon::ZoomOut,
+            &t.zoom_out,
+            false,
+            dark::ACCENT,
+        ) {
+            self.camera
+                .zoom_at(1.0 / 1.2, vec2(screen_width() * 0.5, screen_height() * 0.5));
+        }
+        if ui::draw_edge_button(
+            self.camera_control_rect(2),
+            ConsoleIcon::Reset,
+            &t.reset_view,
+            false,
+            dark::ACCENT,
+        ) {
+            self.reset_camera_view();
+        }
+        if screen_height() >= 420.0 {
+            ui::draw_bounded_text(
+                &t.camera_hint,
+                EDGE_RAIL_MARGIN + EDGE_RAIL_W + 16.0,
+                screen_height() - 10.0,
+                screen_width() - 2.0 * (EDGE_RAIL_MARGIN + EDGE_RAIL_W + 16.0),
+                9.0,
+                dark::TEXT_DIM,
+            );
+        }
     }
 
     pub(super) fn draw_wave_start_flash(&self) {
@@ -455,34 +665,4 @@ impl GameplayState {
             y += config.row_height + config.spacing;
         }
     }
-}
-
-/// If the mouse is over `anchor`, explain the action without keeping a help
-/// card on screen permanently.
-pub(super) fn draw_button_hint(anchor: Rect, title: &str, body: &str) {
-    let (mx, my) = mouse_position();
-    let hovered =
-        mx >= anchor.x && mx <= anchor.x + anchor.w && my >= anchor.y && my <= anchor.y + anchor.h;
-    if !hovered {
-        return;
-    }
-    let w = 232.0;
-    let h = 48.0;
-    let x = (anchor.x + anchor.w - w).clamp(6.0, screen_width() - w - 6.0);
-    let y = anchor.y + anchor.h + 6.0;
-    draw_rectangle(x, y, w, h, Color::new(0.03, 0.05, 0.06, 0.98));
-    draw_rectangle_lines(x, y, w, h, 1.2, Color::new(0.22, 0.52, 0.52, 0.85));
-    draw_ui_text(title, x + 9.0, y + 17.0, 12.0, dark::TEXT_BRIGHT);
-    ui::draw_bounded_text(body, x + 9.0, y + 34.0, w - 18.0, 10.0, dark::TEXT_DIM);
-}
-
-fn draw_centered_text(text: &str, center_x: f32, baseline_y: f32, font_size: f32, color: Color) {
-    let dims = measure_ui_text(text, None, font_size as u16, 1.0);
-    draw_ui_text(
-        text,
-        center_x - dims.width * 0.5,
-        baseline_y,
-        font_size,
-        color,
-    );
 }

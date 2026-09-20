@@ -24,7 +24,6 @@ impl GameplayState {
         self.draw_hud(data);
         self.draw_corruption_distortion();
         self.draw_wave_start_flash();
-        self.draw_wave_status();
         self.draw_notifications();
 
         // Opening premise card takes precedence over everything else.

@@ -5,7 +5,7 @@ use crate::data::TowerDef;
 use macroquad::prelude::*;
 use macroquad_toolkit::colors::dark;
 use macroquad_toolkit::math::pulse_range;
-use macroquad_toolkit::ui::draw_ui_text;
+use macroquad_toolkit::ui::{draw_ui_text, is_fully_visible, ScrollArea};
 
 use super::text::draw_bounded_text;
 use super::widgets::draw_button_corners;
@@ -26,6 +26,7 @@ pub fn draw_build_panel(
     infos: &[TowerButtonInfo],
     scrap: f32,
     power: f32,
+    scroll: &mut ScrollArea,
 ) -> Option<String> {
     let mut clicked_id = None;
 
@@ -36,9 +37,36 @@ pub fn draw_build_panel(
     draw_ui_text(&t.title, x + 10.0, y + 20.0, 18.0, dark::ACCENT);
     draw_ui_text(&t.subtitle, x + 10.0, y + 36.0, 11.0, dark::TEXT_DIM);
 
-    let mut btn_y = y + 54.0;
+    let list_top = y + 54.0;
     let btn_h = 68.0;
     let padding = 8.0;
+
+    let content_height: f32 = tower_defs
+        .iter()
+        .enumerate()
+        .map(|(i, _)| {
+            let unlocked = infos.get(i).map(|info| info.unlocked).unwrap_or(true);
+            if unlocked {
+                btn_h + padding
+            } else {
+                34.0 + padding
+            }
+        })
+        .sum();
+    let key_h = 30.0 + 6.0 * 22.0;
+    let key_reserved = if sidebar.h >= key_h + 190.0 {
+        key_h + 10.0
+    } else {
+        0.0
+    };
+    let list_view = Rect::new(
+        x + 5.0,
+        list_top,
+        w - 10.0,
+        (sidebar.bottom() - list_top - key_reserved - 10.0).max(84.0),
+    );
+    scroll.update_at(list_view, content_height, Vec2::from(mouse_position()));
+    let mut btn_y = list_top - scroll.offset();
 
     for (i, def) in tower_defs.iter().enumerate() {
         let unlocked = infos.get(i).map(|info| info.unlocked).unwrap_or(true);
@@ -48,7 +76,12 @@ pub fn draw_build_panel(
                 .get(i)
                 .map(|info| info.requirement.as_str())
                 .unwrap_or("");
-            btn_y += draw_locked_row(x, btn_y, w, &def.name, requirement) + padding;
+            let row_h = 34.0;
+            let row = Rect::new(x + 5.0, btn_y, w - 10.0, row_h);
+            if is_fully_visible(row, list_view) {
+                draw_locked_row(x, btn_y, w, &def.name, requirement);
+            }
+            btn_y += row_h + padding;
             continue;
         }
 
@@ -69,6 +102,10 @@ pub fn draw_build_panel(
         };
 
         let button_rect = Rect::new(x + 5.0, btn_y, w - 10.0, btn_h);
+        if !is_fully_visible(button_rect, list_view) {
+            btn_y += btn_h + padding;
+            continue;
+        }
         let (mx, my) = mouse_position();
         let hovered = mx >= button_rect.x
             && mx <= button_rect.x + button_rect.w
@@ -171,14 +208,23 @@ pub fn draw_build_panel(
             dark::TEXT_DIM,
         );
 
-        if hovered && is_mouse_button_pressed(MouseButton::Left) {
+        if hovered && is_mouse_button_released(MouseButton::Left) {
             clicked_id = Some(def.id.clone());
         }
 
         btn_y += btn_h + padding;
     }
 
-    draw_map_key(x, btn_y, w);
+    if key_reserved > 0.0 && content_height <= list_view.h {
+        draw_map_key(x, list_top + content_height, w);
+    }
+    scroll.draw_scrollbar_with(
+        list_view,
+        content_height,
+        Color::new(0.02, 0.03, 0.04, 0.42),
+        Color::new(0.28, 0.56, 0.68, 0.62),
+        dark::ACCENT,
+    );
 
     clicked_id
 }

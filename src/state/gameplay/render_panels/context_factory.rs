@@ -180,7 +180,7 @@ impl GameplayState {
                 && mx <= list_x + list_w
                 && my >= y
                 && my <= y + row_h
-                && is_mouse_button_pressed(MouseButton::Left)
+                && is_mouse_button_released(MouseButton::Left)
             {
                 clicked = Some(upg.id.clone());
             }

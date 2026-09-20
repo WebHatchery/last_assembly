@@ -6,6 +6,7 @@ use crate::engine::tower::TargetPriority;
 use crate::ui::{self, ConsoleButtonState, ConsoleIcon};
 use macroquad::prelude::*;
 use macroquad_toolkit::colors::dark;
+use macroquad_toolkit::ui::wrap_text;
 
 use super::super::GameplayState;
 
@@ -91,9 +92,9 @@ impl GameplayState {
         let label = fill(&t.target_priority, &[("mode", mode)]);
         if ui::draw_console_button(
             rect.x + 56.0,
-            rect.y + 84.0,
+            rect.y + 74.0,
             (rect.w * 0.36).min(280.0),
-            28.0,
+            44.0,
             &label,
             ConsoleButtonState::Affordable,
         ) {
@@ -161,7 +162,7 @@ impl GameplayState {
                 x,
                 rect.y + 40.0,
                 160.0,
-                40.0,
+                44.0,
                 &label,
                 if can {
                     ConsoleButtonState::Recommended
@@ -171,14 +172,20 @@ impl GameplayState {
             ) {
                 clicked = Some(branch.id.clone());
             }
-            ui::draw_bounded_text(
-                &branch.description,
-                x + 4.0,
-                rect.y + 101.0,
-                152.0,
-                10.0,
-                dark::TEXT_DIM,
-            );
+            for (line_index, line) in wrap_text(&branch.description, 152.0, 10.0)
+                .into_iter()
+                .take(2)
+                .enumerate()
+            {
+                ui::draw_bounded_text(
+                    &line,
+                    x + 4.0,
+                    rect.y + 99.0 + line_index as f32 * 11.0,
+                    152.0,
+                    10.0,
+                    dark::TEXT_DIM,
+                );
+            }
         }
         if let Some(id) = clicked {
             self.specialize_tower(tower_idx, &id, data);

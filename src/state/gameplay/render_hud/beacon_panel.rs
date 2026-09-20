@@ -11,7 +11,6 @@ use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
 use super::super::helpers::{beacon_color, threat_color};
 use super::super::GameplayState;
-use super::draw_button_hint;
 
 impl GameplayState {
     pub(crate) fn draw_beacon_panel(&mut self, rect: Rect) {
@@ -132,7 +131,7 @@ impl GameplayState {
         // register clicks.
         let interactive = self.salvage_report.is_none() && !self.paused;
 
-        let btn_y = rect.y + rect.h - 29.0;
+        let btn_y = rect.y + rect.h - 58.0;
         if !self.beacon_active {
             // While the salvage report modal is up the beacon can't be re-raised
             // from the panel behind it; the player rebuilds first.
@@ -141,7 +140,7 @@ impl GameplayState {
             } else {
                 ConsoleButtonState::Disabled
             };
-            let start_rect = Rect::new(rect.x + 14.0, btn_y, rect.w - 28.0, 24.0);
+            let start_rect = Rect::new(rect.x + 14.0, btn_y, rect.w - 28.0, 44.0);
             if ui::draw_console_button(
                 start_rect.x,
                 start_rect.y,
@@ -153,12 +152,11 @@ impl GameplayState {
             {
                 self.start_beacon();
             }
-            draw_button_hint(start_rect, &t.start_beacon_tip, &t.start_beacon_tip_detail);
             return;
         }
 
         let left_w = (rect.w - 34.0) * 0.5;
-        let recall_rect = Rect::new(rect.x + 14.0, btn_y, left_w, 24.0);
+        let recall_rect = Rect::new(rect.x + 14.0, btn_y, left_w, 44.0);
         if interactive && self.scavengers_out > 0 && !self.scavenger_recall_active {
             if ui::draw_console_button(
                 recall_rect.x,
@@ -181,7 +179,6 @@ impl GameplayState {
                 ConsoleButtonState::Disabled,
             );
         }
-        draw_button_hint(recall_rect, &t.recall_tip, &t.recall_tip_detail);
 
         let takeover_locked = self.vault_takeover.active || self.vault_takeover.upload_complete;
         let shutdown_state = if self.shutdown_triggered
@@ -200,7 +197,7 @@ impl GameplayState {
         } else {
             &t.shutdown
         };
-        let shutdown_rect = Rect::new(rect.x + 20.0 + left_w, btn_y, left_w, 24.0);
+        let shutdown_rect = Rect::new(rect.x + 20.0 + left_w, btn_y, left_w, 44.0);
         if ui::draw_console_button(
             shutdown_rect.x,
             shutdown_rect.y,
@@ -212,7 +209,6 @@ impl GameplayState {
         {
             self.trigger_shutdown();
         }
-        draw_button_hint(shutdown_rect, &t.shutdown_tip, &t.shutdown_tip_detail);
     }
 
     fn draw_scavenger_status_cards(&self, rect: Rect) {

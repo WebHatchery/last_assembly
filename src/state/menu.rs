@@ -60,7 +60,8 @@ impl MenuState {
         let btn_h = 56.0;
         let gap = 11.0;
         let panel_w = (w * 0.34).clamp(300.0, 430.0);
-        let panel_y = (h * 0.52).clamp(280.0, h - (btn_h * 4.0 + gap * 3.0) - 40.0);
+        let content_h = btn_h * 4.0 + gap * 3.0;
+        let panel_y = (h * 0.52).clamp(24.0, (h - content_h - 24.0).max(24.0));
 
         let t = &text().menu;
         let (continue_label, continue_detail) = if self.has_save {
@@ -256,5 +257,5 @@ fn draw_title_button(rect: Rect, label: &str, detail: &str, enabled: bool, prima
         );
     }
 
-    hovered && is_mouse_button_pressed(MouseButton::Left)
+    hovered && is_mouse_button_released(MouseButton::Left)
 }

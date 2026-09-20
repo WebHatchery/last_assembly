@@ -168,6 +168,7 @@ pub struct HudStrings {
     pub edge_shift: String,
     pub edge_beacon: String,
     pub edge_pause: String,
+    pub cancel: String,
     /// `{cost}`, `{risk}`.
     pub cost_risk: String,
     pub beacon_control: String,
@@ -202,6 +203,13 @@ pub struct HudStrings {
     pub card_out: String,
     pub card_home: String,
     pub speed_tag: String,
+    pub speed_normal: String,
+    pub speed_fast: String,
+    pub speed_hint: String,
+    pub zoom_in: String,
+    pub zoom_out: String,
+    pub reset_view: String,
+    pub camera_hint: String,
     pub incoming: String,
     /// `{n}`.
     pub wave_flash: String,
@@ -640,6 +648,7 @@ pub struct PanelStrings {
     pub coverage_none: String,
     /// `{paths}`.
     pub coverage: String,
+    pub close: String,
     pub building_subtitle: String,
     /// `{text}`.
     pub covers: String,

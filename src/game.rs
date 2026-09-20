@@ -156,8 +156,18 @@ impl Game {
                 gameplay.resources.scrap = 500.0;
                 if let (Some(def), Some(slot)) = (
                     self.data.tower_def_by_id("ballistic_turret"),
-                    gameplay.map_state.slots.first(),
+                    gameplay
+                        .map_state
+                        .slots
+                        .iter()
+                        .find(|slot| slot.tower_index.is_none()),
                 ) {
+                    let slot_idx = gameplay
+                        .map_state
+                        .slots
+                        .iter()
+                        .position(|candidate| candidate.position == slot.position)
+                        .unwrap_or(0);
                     let mut tower = crate::engine::tower::Tower::new(
                         def.tower_type.clone(),
                         def.id.clone(),
@@ -175,16 +185,24 @@ impl Game {
                         tower.range *= gameplay.constants.tower.upgrade_range_mult;
                     }
                     tower.target_priority = crate::engine::tower::TargetPriority::Strongest;
+                    let tower_idx = gameplay.towers.len();
                     gameplay.towers.push(tower);
                     gameplay.tower_stats.push(Default::default());
-                    gameplay.map_state.slots[0].tower_index = Some(0);
-                    gameplay.selected_tower = Some(0);
+                    gameplay.map_state.slots[slot_idx].tower_index = Some(tower_idx);
+                    gameplay.selected_tower = Some(tower_idx);
                 }
                 self.state = GameState::Gameplay(gameplay);
             }
             "intro" => {
                 let mut gameplay = GameplayState::new(&self.data);
                 gameplay.show_intro = true;
+                self.state = GameState::Gameplay(gameplay);
+            }
+            "pause" => {
+                let mut gameplay = GameplayState::new(&self.data);
+                gameplay.show_intro = false;
+                gameplay.coach.active = false;
+                gameplay.paused = true;
                 self.state = GameState::Gameplay(gameplay);
             }
             // The coach only arms itself for players who have not seen the

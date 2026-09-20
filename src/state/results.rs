@@ -5,7 +5,7 @@ use crate::state::{RunSummary, StateTransition};
 use macroquad::prelude::*;
 use macroquad_toolkit::colors::dark;
 use macroquad_toolkit::ui::button;
-use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text, wrap_text};
 
 pub struct ResultsState {
     pub summary: RunSummary,
@@ -37,22 +37,37 @@ impl ResultsState {
         let t = &text().results;
         let center_x = screen_width() / 2.0;
         let center_y = screen_height() / 2.0;
-        let report_top = (center_y - 70.0).max(150.0);
+        let compact = screen_height() < 520.0 || screen_width() < 520.0;
+        let report_top = if compact {
+            72.0
+        } else {
+            (center_y - 70.0).max(150.0)
+        };
 
         if self.summary.campaign_won {
             let panel_w = 720.0_f32.min(screen_width() - 32.0);
+            let panel_y = if screen_height() < 520.0 {
+                16.0
+            } else {
+                report_top - 108.0
+            };
+            let panel_h = if screen_height() < 520.0 {
+                (screen_height() - 32.0).max(180.0)
+            } else {
+                445.0_f32.min(screen_height() - report_top + 100.0)
+            };
             draw_rectangle(
                 center_x - panel_w * 0.5,
-                report_top - 108.0,
+                panel_y,
                 panel_w,
-                445.0_f32.min(screen_height() - report_top + 100.0),
+                panel_h,
                 Color::new(0.015, 0.025, 0.028, 0.74),
             );
             draw_rectangle_lines(
                 center_x - panel_w * 0.5,
-                report_top - 108.0,
+                panel_y,
                 panel_w,
-                445.0_f32.min(screen_height() - report_top + 100.0),
+                panel_h,
                 1.5,
                 Color::new(0.22, 0.72, 0.68, 0.72),
             );
@@ -65,12 +80,17 @@ impl ResultsState {
         } else {
             &t.title_lost
         };
-        let dims = measure_ui_text(title, None, 40, 1.0);
+        let title_size = if compact { 22 } else { 40 };
+        let dims = measure_ui_text(title, None, title_size, 1.0);
         draw_ui_text(
             title,
             center_x - dims.width / 2.0,
-            report_top - 70.0,
-            40.0,
+            if compact {
+                report_top - 34.0
+            } else {
+                report_top - 70.0
+            },
+            title_size as f32,
             if self.summary.campaign_won {
                 dark::ACCENT
             } else if self.summary.shutdown_triggered {
@@ -82,15 +102,30 @@ impl ResultsState {
 
         let lines = build_report_lines(&self.summary);
         let mut y = report_top;
+        let line_size = if compact { 13 } else { 20 };
         for line in &lines {
-            let dims = measure_ui_text(line, None, 20, 1.0);
-            draw_ui_text(line, center_x - dims.width / 2.0, y, 20.0, dark::TEXT);
-            y += 24.0;
+            for wrapped in wrap_text(line, screen_width() - 24.0, line_size as f32) {
+                let dims = measure_ui_text(&wrapped, None, line_size, 1.0);
+                draw_ui_text(
+                    &wrapped,
+                    center_x - dims.width / 2.0,
+                    y,
+                    line_size as f32,
+                    dark::TEXT,
+                );
+                y += if compact { 16.0 } else { 24.0 };
+            }
         }
 
         let btn_w = 200.0;
         let btn_x = center_x - btn_w / 2.0;
-        if button(btn_x, y + 20.0, btn_w, 45.0, &t.button) {
+        if button(
+            btn_x,
+            y + if compact { 10.0 } else { 20.0 },
+            btn_w.min(screen_width() - 32.0),
+            if compact { 40.0 } else { 45.0 },
+            &t.button,
+        ) {
             self.menu_clicked = true;
         }
     }

@@ -52,7 +52,7 @@
       },
       {
         "title": "Raise the beacon",
-        "body": "The scrap is out there, not in here. Tap BEACON, then tap START BEACON to send the teams — and tell the swarm exactly where you are."
+        "body": "The scrap is out there, not in here. Tap BEACON, then tap START BEACON to send the teams — and tell the swarm exactly where you are. PAUSE opens recovery controls; CANCEL or right-click abandons tower placement."
       }
     ]
   },
@@ -95,6 +95,7 @@
     "edge_shift": "SHIFT",
     "edge_beacon": "BEACON",
     "edge_pause": "PAUSE",
+    "cancel": "CANCEL",
     "cost_risk": "{cost}    {risk}",
     "beacon_control": "BEACON CONTROL",
     "evac": "EVAC {n}",
@@ -121,6 +122,13 @@
     "card_out": "Out",
     "card_home": "Home",
     "speed_tag": "2x",
+    "speed_normal": "1X",
+    "speed_fast": "2X",
+    "speed_hint": "Toggle simulation speed",
+    "zoom_in": "ZOOM +",
+    "zoom_out": "ZOOM -",
+    "reset_view": "RESET",
+    "camera_hint": "Drag the map · pinch to zoom",
     "incoming": "INCOMING",
     "wave_flash": "WAVE {n}",
     "beacon_shutdown_flash": "BEACON SHUTDOWN"
@@ -434,7 +442,7 @@
     "requires_research": "REQUIRES RESEARCH",
     "max_level": "MAX LEVEL",
     "choose_specialization": "FINAL ASSEMBLY — CHOOSE ONE",
-    "specialize": "{name}  {n}",
+    "specialize": "{name} · {n} SCRAP",
     "specialized": "ASSEMBLED: {name}",
     "upgrade": "UPGRADE {n}",
     "tower_title": "{name} LVL {level}",
@@ -450,6 +458,7 @@
     "target_fastest": "FASTEST",
     "coverage_none": "Coverage: none",
     "coverage": "Coverage: {paths}",
+    "close": "CLOSE",
     "building_subtitle": "factory system",
     "covers": "Covers: {text}",
     "expected": "Expected: {text}",

@@ -198,7 +198,7 @@ pub fn draw_console_button(
     // — these are high-stakes console actions (start/shutdown beacon, place
     // tower) where instant feedback on press reads as more responsive, and
     // there's no drag-to-cancel gesture in this UI to protect against.
-    hovered && is_mouse_button_pressed(MouseButton::Left)
+    hovered && is_mouse_button_released(MouseButton::Left)
 }
 
 /// Small touch-friendly controls that keep the world view available while
@@ -280,7 +280,7 @@ pub fn draw_edge_button(
             Color::new(accent.r, accent.g, accent.b, 0.4),
         );
     }
-    hovered && is_mouse_button_pressed(MouseButton::Left)
+    hovered && is_mouse_button_released(MouseButton::Left)
 }
 
 /// Bracket the corners of `rect` with short accent ticks.

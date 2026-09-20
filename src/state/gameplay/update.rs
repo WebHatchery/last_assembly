@@ -89,7 +89,32 @@ impl GameplayState {
 
     fn handle_camera_input(&mut self) {
         let dt = get_frame_time();
-        self.camera.update(dt, false);
+        let touches_active = !touches().is_empty();
+        if touches_active {
+            let pointer = macroquad_toolkit::ui::Pointer::read(|position| position);
+            if !self.touch_gesture_active && pointer.down {
+                self.touch_started_over_ui = self.camera_input_is_captured(pointer.position);
+            }
+            let frame = self.touch_gesture.update();
+            self.touch_gesture_active = frame.active;
+            self.touch_gesture_claimed = frame.claimed;
+            if !self.touch_started_over_ui && frame.claimed {
+                self.camera.pan(-frame.pan / self.camera.zoom.max(0.0001));
+                if (frame.scale - 1.0).abs() > f32::EPSILON {
+                    self.camera.zoom_at(frame.scale, frame.center);
+                }
+            }
+            if !frame.active {
+                self.touch_started_over_ui = false;
+            }
+        } else {
+            self.touch_gesture_active = false;
+            self.touch_gesture_claimed = false;
+            self.touch_started_over_ui = false;
+        }
+        let (mx, my) = mouse_position();
+        self.camera
+            .update(dt, self.camera_input_is_captured(vec2(mx, my)));
     }
 
     pub fn screen_to_world(&self, screen_pos: Vec2) -> Vec2 {
@@ -119,7 +144,7 @@ impl GameplayState {
             };
         }
 
-        if is_mouse_button_pressed(MouseButton::Right) {
+        if is_mouse_button_released(MouseButton::Right) {
             self.placing_tower = None;
             self.close_dock_panels();
             self.selected_tower = None;

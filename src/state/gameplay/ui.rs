@@ -34,16 +34,30 @@ pub(crate) enum EdgeSide {
 
 impl GameplayState {
     pub(crate) fn edge_button_rect(&self, side: EdgeSide, index: usize) -> Rect {
+        let button_h = if screen_height() < 500.0 {
+            44.0
+        } else {
+            EDGE_BUTTON_H
+        };
+        let gap = if screen_height() < 500.0 {
+            4.0
+        } else {
+            EDGE_BUTTON_GAP
+        };
         let x = match side {
             EdgeSide::Left => EDGE_RAIL_MARGIN,
             EdgeSide::Right => screen_width() - EDGE_RAIL_MARGIN - EDGE_RAIL_W,
         };
         Rect::new(
             x,
-            self.constants.ui.hud_height + 14.0 + index as f32 * (EDGE_BUTTON_H + EDGE_BUTTON_GAP),
+            self.constants.ui.hud_height + 14.0 + index as f32 * (button_h + gap),
             EDGE_RAIL_W,
-            EDGE_BUTTON_H,
+            button_h,
         )
+    }
+
+    pub(crate) fn camera_control_rect(&self, index: usize) -> Rect {
+        self.edge_button_rect(EdgeSide::Right, index + 2)
     }
 
     pub(crate) fn build_panel_rect(&self) -> Rect {
@@ -60,11 +74,22 @@ impl GameplayState {
     pub(crate) fn sector_panel_rect(&self) -> Rect {
         let y = self.constants.ui.hud_height + 12.0;
         let w = (screen_width() * 0.27).clamp(270.0, 340.0);
+        let reveal_x = self.map_state.max_visible_x() + 120.0;
+        let row_count = self
+            .map_state
+            .buildings
+            .iter()
+            .filter(|building| {
+                self.map_state.is_building_visible(building) && building.position.x <= reveal_x
+            })
+            .count();
+        let content_h =
+            56.0 + row_count as f32 * 94.0 + row_count.saturating_sub(1) as f32 * 9.0 + 12.0;
         Rect::new(
             screen_width() - EDGE_RAIL_MARGIN - EDGE_RAIL_W - 10.0 - w,
             y,
             w,
-            (screen_height() - y - 12.0).min(650.0),
+            (screen_height() - y - 12.0).min(content_h.max(180.0)),
         )
     }
 
@@ -91,6 +116,48 @@ impl GameplayState {
 
     pub(crate) fn any_dock_panel_open(&self) -> bool {
         self.show_build_panel || self.show_sector_panel || self.show_beacon_panel
+    }
+
+    pub(crate) fn has_selection(&self) -> bool {
+        self.selected_core
+            || self.selected_tower.is_some()
+            || self.selected_slot.is_some()
+            || self.selected_building.is_some()
+    }
+
+    pub(crate) fn coach_rect(&self) -> Rect {
+        let bx = EDGE_RAIL_MARGIN + EDGE_RAIL_W + 18.0;
+        let bw = (screen_width() - (EDGE_RAIL_MARGIN + EDGE_RAIL_W + 18.0) * 2.0).max(320.0);
+        Rect::new(bx, self.constants.ui.hud_height + 10.0, bw, 96.0)
+    }
+
+    pub(crate) fn camera_input_is_captured(&self, point: Vec2) -> bool {
+        if point.y < self.constants.ui.hud_height
+            || point.x <= EDGE_RAIL_MARGIN + EDGE_RAIL_W
+            || point.x >= screen_width() - EDGE_RAIL_MARGIN - EDGE_RAIL_W
+        {
+            return true;
+        }
+        if self.show_intro
+            || self.show_workforce
+            || self.show_settings
+            || self.salvage_report.is_some()
+            || self.pending_depth_directive.is_some()
+            || self.paused
+            || self.hud_detail.is_some()
+        {
+            return true;
+        }
+        let inside = |rect: Rect| rect.contains(point);
+        if (self.show_build_panel && inside(self.build_panel_rect()))
+            || (self.show_sector_panel && inside(self.sector_panel_rect()))
+            || (self.show_beacon_panel && inside(self.beacon_panel_rect()))
+            || (self.has_selection() && inside(self.context_panel_rect()))
+            || (self.coach.active && inside(self.coach_rect()))
+        {
+            return true;
+        }
+        false
     }
 
     pub(crate) fn close_dock_panels(&mut self) {
@@ -156,7 +223,7 @@ impl GameplayState {
         }
     }
 
-    fn clear_selection(&mut self) {
+    pub(crate) fn clear_selection(&mut self) {
         self.selected_slot = None;
         self.selected_building = None;
         self.selected_tower = None;

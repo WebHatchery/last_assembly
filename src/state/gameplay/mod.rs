@@ -28,6 +28,8 @@ use crate::engine::vault::VaultTakeover;
 use crate::engine::wave::WaveManager;
 use crate::save::Settings;
 use macroquad_toolkit::camera::Camera2D as ToolkitCamera2D;
+use macroquad_toolkit::input::TouchGesture;
+use macroquad_toolkit::ui::ScrollArea;
 
 pub struct GameplayState {
     pub assets: Option<assets::GameplayAssets>,
@@ -123,6 +125,14 @@ pub struct GameplayState {
     pub show_build_panel: bool,
     pub show_sector_panel: bool,
     pub show_beacon_panel: bool,
+    pub hud_detail: Option<HudDetail>,
+    pub touch_gesture: TouchGesture,
+    pub touch_gesture_active: bool,
+    pub touch_gesture_claimed: bool,
+    pub touch_started_over_ui: bool,
+    pub build_scroll: ScrollArea,
+    pub systems_scroll: ScrollArea,
+    pub depth_scroll: ScrollArea,
 
     pub upgrade_defs: Vec<UpgradeDef>,
     pub beacon_start_difficulty_bonus: f32,
@@ -199,6 +209,13 @@ pub struct SalvageReport {
 pub struct Notification {
     pub text: String,
     pub ttl: f32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HudDetail {
+    Power,
+    Threat,
+    Beacon,
 }
 
 /// Short-lived world-space feedback for a newly powered factory section.

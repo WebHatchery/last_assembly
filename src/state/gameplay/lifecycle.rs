@@ -7,8 +7,10 @@ use crate::engine::map::MapState;
 use crate::engine::threat::ThreatSignature;
 use crate::engine::tower::{TargetPriority, Tower};
 use crate::engine::wave::{WaveManager, WaveTuning};
-use macroquad::prelude::vec2;
+use macroquad::prelude::*;
 use macroquad_toolkit::camera::{Camera2D as ToolkitCamera2D, Camera2DConfig, CameraBounds};
+use macroquad_toolkit::input::TouchGesture;
+use macroquad_toolkit::ui::ScrollArea;
 
 use super::assets::GameplayAssets;
 use super::{Coach, CycleBaseline, DefenseReplay, GameplayState, Resources, TowerUiStats};
@@ -49,17 +51,18 @@ impl GameplayState {
         let constants = data.constants.clone();
         let map_state = MapState::from_def(data.map_def.clone());
 
-        // Frame the camera on the currently-revealed area so the map opens small
-        // and grows as sections are powered back online (see sync_camera_bounds).
+        // Frame the camera on the currently-revealed area, sized from the actual
+        // unobscured viewport instead of the old fixed 900x560 design rectangle.
         let (vmin, vmax) = map_state.visible_bounds();
-        // The old sidebars masked the empty world margin to the left of the
-        // first revealed wing. With the map now occupying the full viewport,
-        // frame the first live section near the left edge instead.
-        let view_center = (vmin + vmax) * 0.5 + vec2((vmin.x + 20.0).max(0.0), 0.0);
-        let content_w = (vmax.x - vmin.x).max(1.0) + 360.0;
-        let content_h = (vmax.y - vmin.y).max(1.0) + 320.0;
-        let init_zoom = (900.0 / content_w).min(560.0 / content_h).clamp(0.6, 1.7);
-        let cam_pad = 240.0;
+        let view_w = screen_width().max(640.0);
+        let view_h = (screen_height() - data.constants.ui.hud_height).max(240.0);
+        let cam_pad = 120.0;
+        let view_center = (vmin + vmax) * 0.5;
+        let content_w = (vmax.x - vmin.x).max(1.0) + cam_pad * 2.0;
+        let content_h = (vmax.y - vmin.y).max(1.0) + cam_pad * 2.0;
+        let init_zoom = (view_w / content_w)
+            .min(view_h / content_h)
+            .clamp(0.45, 1.8);
         let cam_min = vec2((vmin.x - cam_pad).max(0.0), (vmin.y - cam_pad).max(0.0));
         let cam_max = vec2(
             (vmax.x + cam_pad).min(map_state.map_size.x),
@@ -173,6 +176,14 @@ impl GameplayState {
             show_build_panel: false,
             show_sector_panel: false,
             show_beacon_panel: false,
+            hud_detail: None,
+            touch_gesture: TouchGesture::new(),
+            touch_gesture_active: false,
+            touch_gesture_claimed: false,
+            touch_started_over_ui: false,
+            build_scroll: ScrollArea::new(),
+            systems_scroll: ScrollArea::new(),
+            depth_scroll: ScrollArea::new(),
 
             upgrade_defs: data.upgrade_defs.clone(),
             beacon_start_difficulty_bonus: 0.0,

@@ -28,16 +28,24 @@ impl GameplayState {
         // With nothing selected it used to repeat the NEXT STEP strip's advice
         // (with a second FOCUS button) — pure duplication that also hid ~130px
         // of map.
-        let has_selection = self.selected_core
-            || self.selected_tower.is_some()
-            || self.selected_slot.is_some()
-            || self.selected_building.is_some();
+        let has_selection = self.has_selection();
         if !has_selection {
             return;
         }
 
         let rect = self.context_panel_rect();
         ui::draw_console_panel(rect, Color::new(0.22, 0.42, 0.45, 0.86));
+        if ui::draw_console_button(
+            rect.x + rect.w - 78.0,
+            rect.y + 10.0,
+            62.0,
+            44.0,
+            &text().panels.close,
+            ui::ConsoleButtonState::Affordable,
+        ) {
+            self.clear_selection();
+            return;
+        }
 
         // Selection is mutually exclusive; core wins if somehow both are set.
         if self.selected_core {

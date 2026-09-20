@@ -32,10 +32,26 @@ You do not tell anyone that you were the lead researcher who unlocked the last A
 
 Reach the vault at the centre and take the AI back. Every section you wake carries you further in, and makes you louder. Once the whole factory answers, begin the takeover from the factory console. The beacon locks at Terminal Howl through a forced handshake, swarm-control severance, and human override; hold the line until the upload completes, then destroy every machine still inside.
 
+## Screen composition and support
+
+Normal play is supported at 1280x720 and the compact landscape minimum is
+640x360. The factory map remains the dominant play area; a compact telemetry
+strip carries survival, resources, speed, and threat, while the centered NEXT
+STEP card names the current decision. Towers, Systems, Shift, Beacon, Pause,
+and camera controls live in the side rails and open one focused console at a
+time. Tap the status, power, or threat readouts for details when those facts
+are not needed continuously. Menu, pause, workforce, report, and results
+recovery overlays also remain usable in a 390x844 portrait stress viewport;
+portrait gameplay is not the supported play orientation.
+
 ## Controls
 
-- Mouse: place towers and use the interface.
-- Esc: pause.
+- Click or tap: select, place, build, inspect, and use the interface.
+- Drag the map to pan; pinch to zoom on touch. ZOOM +, ZOOM -, and RESET are
+  always visible in the right rail.
+- 1X/2X: toggle simulation speed. PAUSE: open recovery and settings controls.
+- CANCEL: leave tower placement without spending resources. Right-click and
+  Esc remain available as additional cancellation/pause shortcuts.
 
 ## Writing
 

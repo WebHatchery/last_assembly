@@ -8,7 +8,7 @@ use macroquad::prelude::*;
 
 impl GameplayState {
     pub fn handle_map_click(&mut self, data: &GameData) {
-        if !is_mouse_button_pressed(MouseButton::Left) {
+        if !is_mouse_button_released(MouseButton::Left) || self.touch_gesture_claimed {
             return;
         }
 
@@ -78,7 +78,15 @@ impl GameplayState {
             return true;
         }
 
-        if !self.any_dock_panel_open() && inside(self.context_panel_rect()) {
+        if self.has_selection() && inside(self.context_panel_rect()) {
+            return true;
+        }
+
+        if self.hud_detail.is_some() {
+            return true;
+        }
+
+        if self.coach.active && inside(self.coach_rect()) {
             return true;
         }
 

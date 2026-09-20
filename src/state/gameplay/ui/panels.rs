@@ -7,6 +7,7 @@ use crate::state::gameplay::GameplayState;
 use crate::ui;
 use macroquad::prelude::*;
 use macroquad_toolkit::colors::dark;
+use macroquad_toolkit::ui::is_fully_visible;
 
 impl GameplayState {
     pub fn draw_build_panel(&mut self, data: &GameData) {
@@ -34,6 +35,7 @@ impl GameplayState {
             &infos,
             self.resources.scrap,
             self.resources.power,
+            &mut self.build_scroll,
         );
         if let Some(tower_id) = build_clicked {
             self.placing_tower = Some(tower_id);
@@ -90,19 +92,41 @@ impl GameplayState {
             dark::ACCENT,
         );
 
-        let mut row_y = panel_y + 56.0;
+        let list_view = Rect::new(
+            sector_x + 7.0,
+            panel_y + 56.0,
+            panel_w - 14.0,
+            (panel_h - 64.0).max(90.0),
+        );
         let row_h = 94.0;
         let padding = 9.0;
+        let reveal_x = self.map_state.max_visible_x() + 120.0;
+        let row_count = self
+            .map_state
+            .buildings
+            .iter()
+            .filter(|building| {
+                self.map_state.is_building_visible(building) && building.position.x <= reveal_x
+            })
+            .count();
+        let content_height = row_count as f32 * (row_h + padding) - padding;
+        self.systems_scroll.update_at(
+            list_view,
+            content_height.max(0.0),
+            Vec2::from(mouse_position()),
+        );
+        let mut row_y = list_view.y - self.systems_scroll.offset();
         let mut clicked_building = None;
         let mut clicked_action: Option<(usize, &'static str)> = None;
-        let reveal_x = self.map_state.max_visible_x() + 120.0;
 
         for (idx, building) in self.map_state.buildings.iter().enumerate() {
             if !self.map_state.is_building_visible(building) || building.position.x > reveal_x {
                 continue;
             }
-            if row_y + row_h > panel_y + panel_h - 5.0 {
-                break;
+            let row_rect = Rect::new(sector_x + 7.0, row_y, panel_w - 14.0, row_h);
+            if !is_fully_visible(row_rect, list_view) {
+                row_y += row_h + padding;
+                continue;
             }
 
             let unlocked = self.is_building_unlocked(building);
@@ -117,7 +141,6 @@ impl GameplayState {
                     BuildingState::Disabled => (st.offline.as_str(), dark::TEXT_DIM),
                 }
             };
-            let row_rect = Rect::new(sector_x + 7.0, row_y, panel_w - 14.0, row_h);
             let border = if selected {
                 dark::TEXT_BRIGHT
             } else if unlocked {
@@ -212,13 +235,23 @@ impl GameplayState {
                     row_rect.h,
                     Color::new(0.35, 0.48, 0.54, 0.1),
                 );
-                if is_mouse_button_pressed(MouseButton::Left) {
+                if is_mouse_button_released(MouseButton::Left)
+                    && !self.systems_scroll.absorbs_press()
+                {
                     clicked_building = Some(idx);
                 }
             }
 
             row_y += row_h + padding;
         }
+
+        self.systems_scroll.draw_scrollbar_with(
+            list_view,
+            content_height.max(0.0),
+            Color::new(0.02, 0.03, 0.04, 0.42),
+            Color::new(0.28, 0.56, 0.68, 0.62),
+            dark::ACCENT,
+        );
 
         if let Some((idx, action)) = clicked_action {
             self.select_building_only(idx);
