@@ -86,3 +86,7 @@ acceptance claim.
 
 - Add phase-driven beacon hum, breach alarm, tower-fire, and sector-power-up
   sounds, connected to the existing master/SFX volume settings.
+
+## Settings and display
+
+- [ ] Add a Fullscreen toggle to the existing Settings overlay and persist/apply the player's display preference.
