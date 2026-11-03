@@ -35,6 +35,10 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut game = Game::new().await;
+    #[cfg(not(target_arch = "wasm32"))]
+    if !capture::capture_requested("LAST_ASSEMBLY") {
+        macroquad::window::set_fullscreen(save::Settings::load().game.fullscreen);
+    }
 
     // Screenshot harness: when LAST_ASSEMBLY_CAPTURE_PATH is set, seed a scene,
     // render deterministic frames, write a PNG, and exit. See

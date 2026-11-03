@@ -208,7 +208,7 @@ impl GameplayState {
             );
         }
         let power_cell = Rect::new(
-            rect.x + col_w * if compact { 2.0 } else { 2.0 },
+            rect.x + col_w * 2.0,
             rect.y,
             col_w,
             if compact { row_h } else { rect.h },

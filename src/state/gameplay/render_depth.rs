@@ -105,10 +105,10 @@ impl GameplayState {
     }
 }
 
-fn directive_text<'a>(
-    t: &'a crate::data::strings::DepthDirectiveStrings,
+fn directive_text(
+    t: &crate::data::strings::DepthDirectiveStrings,
     directive: DepthDirective,
-) -> (&'a str, &'a str, Color) {
+) -> (&str, &str, Color) {
     match directive {
         DepthDirective::ReinforcedRoutes => (
             &t.reinforced_routes,

@@ -205,6 +205,15 @@ impl Game {
                 gameplay.paused = true;
                 self.state = GameState::Gameplay(gameplay);
             }
+            "settings" => {
+                let mut gameplay = GameplayState::new(&self.data);
+                gameplay.show_intro = false;
+                gameplay.coach.active = false;
+                gameplay.paused = true;
+                gameplay.show_settings = true;
+                gameplay.settings.fullscreen_active = false;
+                self.state = GameState::Gameplay(gameplay);
+            }
             // The coach only arms itself for players who have not seen the
             // tutorial, so force it on rather than depending on local settings.
             "coach" => {

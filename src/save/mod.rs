@@ -3,10 +3,12 @@
 use macroquad_toolkit::persistence::SaveRoot;
 use macroquad_toolkit::settings::GameSettings;
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 const GAME_NAME: &str = "last_assembly";
 const SAVE_FILE: &str = "save.json";
 const SETTINGS_FILE: &str = "settings.json";
+static FULLSCREEN_ACTIVE: AtomicBool = AtomicBool::new(false);
 
 /// Persistent player settings + first-run state, stored separately from the
 /// campaign save so they survive across runs. Volume/display fields live on
@@ -18,6 +20,10 @@ pub struct Settings {
     pub game: GameSettings,
     pub default_fast_speed: bool,
     pub autosave: bool,
+    #[serde(skip)]
+    pub fullscreen_active: bool,
+    #[serde(skip)]
+    pub save_failed: bool,
 }
 
 impl Default for Settings {
@@ -31,19 +37,37 @@ impl Default for Settings {
             },
             default_fast_speed: false,
             autosave: true,
+            fullscreen_active: false,
+            save_failed: false,
         }
     }
 }
 
 impl Settings {
     pub fn load() -> Self {
-        save_root()
+        let mut settings: Self = save_root()
             .and_then(|root| root.load_json(SETTINGS_FILE))
-            .unwrap_or_default()
+            .unwrap_or_default();
+        #[cfg(target_arch = "wasm32")]
+        {
+            settings.fullscreen_active = FULLSCREEN_ACTIVE.load(Ordering::Relaxed);
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            settings.fullscreen_active = settings.game.fullscreen;
+        }
+        FULLSCREEN_ACTIVE.store(settings.fullscreen_active, Ordering::Relaxed);
+        settings
     }
 
     pub fn save(&self) -> Result<(), String> {
         save_root()?.save_json(SETTINGS_FILE, self)
+    }
+
+    pub fn set_fullscreen_active(&mut self, active: bool) {
+        self.fullscreen_active = active;
+        self.game.fullscreen = active;
+        FULLSCREEN_ACTIVE.store(active, Ordering::Relaxed);
     }
 }
 

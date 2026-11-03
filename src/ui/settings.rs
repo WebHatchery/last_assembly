@@ -2,6 +2,7 @@
 
 use crate::data::strings::text;
 use macroquad::prelude::*;
+use macroquad::window::set_fullscreen;
 use macroquad_toolkit::colors::dark;
 use macroquad_toolkit::ui::draw_ui_text;
 
@@ -21,7 +22,7 @@ pub fn draw_settings_overlay(settings: &mut crate::save::Settings) -> SettingsAc
     draw_rectangle(0.0, 0.0, sw, sh, Color::new(0.0, 0.0, 0.0, 0.7));
 
     let pw = 480.0_f32.min(sw - 40.0);
-    let ph = 430.0_f32.min(sh - 40.0);
+    let ph = 430.0_f32.min(sh - 16.0);
     let px = (sw - pw) * 0.5;
     let py = (sh - ph) * 0.5;
     let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.04, 0.06, 0.07, 0.98))
@@ -33,9 +34,10 @@ pub fn draw_settings_overlay(settings: &mut crate::save::Settings) -> SettingsAc
 
     let row_x = px + 24.0;
     let row_w = pw - 48.0;
-    let row_h = 34.0;
-    let gap = 14.0;
-    let mut y = py + 74.0;
+    let compact = sh < 500.0;
+    let row_h = if compact { 32.0 } else { 34.0 };
+    let gap = if compact { 4.0 } else { 14.0 };
+    let mut y = py + if compact { 62.0 } else { 74.0 };
     let mut changed = false;
 
     if macroquad_toolkit::ui::toggle_row(
@@ -83,15 +85,29 @@ pub fn draw_settings_overlay(settings: &mut crate::save::Settings) -> SettingsAc
         settings.tutorial_seen = false;
         changed = true;
     }
+    y += row_h + gap;
+    let mut fullscreen_active = settings.fullscreen_active;
+    if macroquad_toolkit::ui::toggle_row(
+        Rect::new(row_x, y, row_w, row_h),
+        &t.fullscreen,
+        &mut fullscreen_active,
+    ) {
+        settings.set_fullscreen_active(fullscreen_active);
+        set_fullscreen(fullscreen_active);
+        changed = true;
+    }
 
     if changed {
-        let _ = settings.save();
+        settings.save_failed = settings.save().is_err();
+    }
+    if settings.save_failed {
+        draw_ui_text(&t.save_error, row_x, py + ph - 62.0, 14.0, dark::WARNING);
     }
 
     let close_w = 150.0;
     if macroquad_toolkit::ui::button(
         px + (pw - close_w) * 0.5,
-        py + ph - 48.0,
+        py + ph - 46.0,
         close_w,
         34.0,
         &t.close,

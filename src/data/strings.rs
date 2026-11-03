@@ -712,6 +712,8 @@ pub struct SettingsStrings {
     pub sfx_volume: String,
     pub tutorial_replay: String,
     pub tutorial_will_show: String,
+    pub fullscreen: String,
+    pub save_error: String,
     pub close: String,
 }
 

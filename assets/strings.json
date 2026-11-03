@@ -517,6 +517,8 @@
     "sfx_volume": "SFX volume",
     "tutorial_replay": "Replay tutorial on next new run",
     "tutorial_will_show": "Tutorial will show on next new run",
+    "fullscreen": "Fullscreen",
+    "save_error": "Settings could not be saved",
     "close": "Close"
   }
 }

@@ -14,7 +14,6 @@ pub enum ConsoleIcon {
     Tower,
     People,
     Morale,
-    Health,
     Pause,
     Cancel,
     ZoomIn,
@@ -159,22 +158,6 @@ pub fn draw_icon(icon: ConsoleIcon, x: f32, y: f32, size: f32, color: Color) {
                 cx + size * 0.14,
                 cy + size * 0.12,
                 2.0,
-                color,
-            );
-        }
-        ConsoleIcon::Health => {
-            draw_rectangle(
-                cx - size * 0.08,
-                y + size * 0.18,
-                size * 0.16,
-                size * 0.64,
-                color,
-            );
-            draw_rectangle(
-                x + size * 0.18,
-                cy - size * 0.08,
-                size * 0.64,
-                size * 0.16,
                 color,
             );
         }

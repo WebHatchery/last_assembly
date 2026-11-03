@@ -89,4 +89,4 @@ acceptance claim.
 
 ## Settings and display
 
-- [ ] Add a Fullscreen toggle to the existing Settings overlay and persist/apply the player's display preference.
+- [x] Add a Fullscreen toggle to the existing Settings overlay and persist/apply the player's display preference.
